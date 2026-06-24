@@ -1,3 +1,3 @@
 output "vpc_id" {
-    value = aws_vpc.a5_vpc.id
+    value = aws_vpc.kafka_vpc.id
 }
