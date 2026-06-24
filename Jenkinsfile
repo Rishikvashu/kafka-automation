@@ -6,7 +6,7 @@ pipeline {
         stage('Clone Repo') {
             steps {
                 git branch: 'main',
-                    url: 'git@github.com:Rishikvashu/kafka-automation.git'
+                    url: 'https://github.com/Rishikvashu/kafka-automation.git'
             }
         }
 
