@@ -1,4 +1,4 @@
-resource "aws_instance" "a5_ec2" {
+resource "aws_instance" "kafka_ec2" {
 
   ami                    = var.ami
   instance_type          = var.instance_type
