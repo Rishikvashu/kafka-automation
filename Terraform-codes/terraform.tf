@@ -1,14 +1,14 @@
 terraform {
-    backend "s3" {
+  backend "s3" {
 
-        bucket = "terraform-state-vashishtha"
-        key = "A5-Terraform/terraform.tfstate"
-        region = "ap-south-1"
+    bucket = "terraform-state-vashishtha"
+    key    = "A5-Terraform/terraform.tfstate"
+    region = "ap-south-1"
 
-        dynamodb_table = "terraform-lock"
+    dynamodb_table = "terraform-lock"
 
-        encrypt = true
-    }
+    encrypt = true
+  }
 }
 
 module "vpc" {
@@ -54,4 +54,6 @@ module "ec2" {
   sg_id = module.sg.sg_id
 
   instance_name = var.instance_name
+
+  key_name = var.key_name
 }
