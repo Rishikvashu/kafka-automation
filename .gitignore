@@ -1,0 +1,9 @@
+# Ignore Terraform dynamic folders
+.terraform/
+
+# Ignore state files (sensitive data)
+*.tfstate
+*.tfstate.backup
+
+# Optional: Lock file ko track karna hai ya nahi (DevOps mein standard hai ignore karna agar multi-OS ho)
+.terraform.lock.hcl
