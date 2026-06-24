@@ -1,3 +1,3 @@
 output "subnet_id" {
-    value = aws_subnet.a5_subnet.id
+    value = aws_subnet.kafka_subnet.id
 }
