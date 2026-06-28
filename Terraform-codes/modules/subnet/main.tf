@@ -17,7 +17,7 @@ resource "aws_subnet" "kafka_subnet" {
 }
 resource "aws_route_table_association" "kafka_rta" {
 
-  subnet_id      = aws_subnet.kafka_subnet.id
+  subnet_id = aws_subnet.kafka_subnet.id
 
   route_table_id = var.route_table_id
 }
