@@ -25,6 +25,8 @@ module "subnet" {
 
   vpc_id = module.vpc.vpc_id
 
+  route_table_id = module.vpc.route_table_id
+
   subnet_cidr = var.subnet_cidr
 
   subnet_name = var.subnet_name
