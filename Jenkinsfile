@@ -1,122 +1,236 @@
 pipeline {
 
-agent any
+    agent any
 
-parameters {
+    parameters {
 
-    choice(
-        name: 'ACTION',
-        choices: ['apply', 'destroy'],
-        description: 'Choose Terraform Action'
-    )
+        choice(
+            name: 'ACTION',
+            choices: ['apply', 'destroy'],
+            description: 'Choose Terraform Action'
+        )
 
-}
-
-environment {
-
-    TF_DIR = 'Terraform-codes'
-
-}
-
-stages {
-
-    stage('Clone Repo') {
-
-        steps {
-
-            echo "Cloning GitHub Repository..."
-
-            git branch: 'main',
-                url: 'git@github.com:Rishikvashu/kafka-automation.git'
-        }
     }
 
-    stage('Terraform Init') {
+    environment {
 
-        steps {
+        TF_DIR = 'Terraform-codes'
+        ANSIBLE_DIR = 'ansible'
 
-            dir("${TF_DIR}") {
+    }
 
-                sh '''
-                terraform init
-                '''
+    stages {
+
+        stage('Clone Repository') {
+
+            steps {
+
+                echo "Cloning GitHub Repository..."
+
+                git branch: 'main',
+                    url: 'git@github.com:Rishikvashu/kafka-automation.git'
             }
         }
-    }
 
-    stage('Terraform Validate') {
+        stage('Terraform Init') {
 
-        steps {
+            steps {
 
-            dir("${TF_DIR}") {
+                dir("${TF_DIR}") {
 
-                sh '''
-                terraform validate
-                '''
+                    sh '''
+                    terraform init
+                    '''
+                }
             }
         }
-    }
 
-    stage('Terraform Plan') {
+        stage('Terraform Validate') {
 
-        steps {
+            steps {
 
-            dir("${TF_DIR}") {
+                dir("${TF_DIR}") {
 
-                sh '''
-                terraform plan
-                '''
+                    sh '''
+                    terraform validate
+                    '''
+                }
             }
         }
-    }
 
-    stage('Terraform Action') {
+        stage('Terraform Plan') {
 
-        steps {
+            steps {
 
-            dir("${TF_DIR}") {
+                dir("${TF_DIR}") {
 
-                script {
+                    sh '''
+                    terraform plan
+                    '''
+                }
+            }
+        }
 
-                    if (params.ACTION == 'apply') {
+        stage('Terraform Action') {
 
-                        echo "Creating Kafka Infrastructure..."
+            steps {
 
-                        sh '''
-                        terraform apply -auto-approve
-                        '''
+                dir("${TF_DIR}") {
 
-                    } else {
+                    script {
 
-                        echo "Destroying Kafka Infrastructure..."
+                        if (params.ACTION == 'apply') {
 
-                        sh '''
-                        terraform destroy -auto-approve
-                        '''
+                            echo "Creating Kafka Infrastructure..."
 
+                            sh '''
+                            terraform apply -auto-approve
+                            '''
+
+                        } else {
+
+                            echo "Destroying Kafka Infrastructure..."
+
+                            sh '''
+                            terraform destroy -auto-approve
+                            '''
+                        }
                     }
                 }
             }
         }
+
+        stage('Wait for EC2') {
+
+            when {
+
+                expression {
+
+                    return params.ACTION == 'apply'
+                }
+            }
+
+            steps {
+
+                echo "Waiting for EC2 to boot..."
+
+                sleep(time: 60, unit: 'SECONDS')
+            }
+        }
+
+        stage('Verify Dynamic Inventory') {
+
+            when {
+
+                expression {
+
+                    return params.ACTION == 'apply'
+                }
+            }
+
+            steps {
+
+                dir("${ANSIBLE_DIR}") {
+
+                    sh '''
+                    ansible-inventory --graph
+                    '''
+                }
+            }
+        }
+
+        stage('Wait Until SSH is Ready') {
+
+            when {
+
+                expression {
+
+                    return params.ACTION == 'apply'
+                }
+            }
+
+            steps {
+
+                dir("${ANSIBLE_DIR}") {
+
+                    sh '''
+                    until ansible all -m ping
+                    do
+                        echo "Waiting for SSH..."
+                        sleep 10
+                    done
+                    '''
+                }
+            }
+        }
+
+        stage('Configure Kafka Using Ansible') {
+
+            when {
+
+                expression {
+
+                    return params.ACTION == 'apply'
+                }
+            }
+
+            steps {
+
+                dir("${ANSIBLE_DIR}") {
+
+                    sh '''
+                    ansible-playbook site.yml
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Kafka Service') {
+
+            when {
+
+                expression {
+
+                    return params.ACTION == 'apply'
+                }
+            }
+
+            steps {
+
+                dir("${ANSIBLE_DIR}") {
+
+                    sh '''
+                    ansible all -m shell -a "systemctl is-active kafka"
+                    '''
+                }
+            }
+        }
     }
-}
 
-post {
+    post {
 
-    success {
+        success {
 
-        echo "Pipeline Executed Successfully"
+            echo "=========================================="
+            echo "Pipeline Executed Successfully"
+            echo "=========================================="
+
+        }
+
+        failure {
+
+            echo "=========================================="
+            echo "Pipeline Failed"
+            echo "=========================================="
+
+        }
+
+        always {
+
+            echo "=========================================="
+            echo "Pipeline Execution Finished"
+            echo "=========================================="
+
+        }
     }
-
-    failure {
-
-        echo "Pipeline Failed"
-    }
-
-    always {
-
-        echo "Pipeline Execution Finished"
-    }
-}
-
 }
